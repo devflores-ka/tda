@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+
+{% block title %}Ticket #{{ ticket.id }} - Sistema de Tickets{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Ticket #{{ ticket.id }}</h2>
+            <div>
+                {% if puede_editar %}
+                <a href="#" class="btn btn-primary">
+                    <i class="bi bi-pencil"></i> Editar
+                </a>
+                {% endif %}
+                <a href="{% url 'lista_tickets' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+
+        <!-- Información principal -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">{{ ticket.titulo }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <strong>Estado:</strong><br>
+                        {% if ticket.estado == 'ABIERTO' %}
+                            <span class="badge bg-warning">{{ ticket.get_estado_display }}</span>
+                        {% elif ticket.estado == 'EN_PROCESO' %}
+                            <span class="badge bg-info">{{ ticket.get_estado_display }}</span>
+                        {% elif ticket.estado == 'RESUELTO' %}
+                            <span class="badge bg-success">{{ ticket.get_estado_display }}</span>
+                        {% elif ticket.estado == 'CERRADO' %}
+                            <span class="badge bg-secondary">{{ ticket.get_estado_display }}</span>
+                        {% else %}
+                            <span class="badge bg-dark">{{ ticket.get_estado_display }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Nivel Crítico:</strong><br>
+                        {% if ticket.nivel_critico == 'CRITICO' %}
+                            <span class="badge bg-danger">{{ ticket.get_nivel_critico_display }}</span>
+                        {% elif ticket.nivel_critico == 'ALTO' %}
+                            <span class="badge bg-warning">{{ ticket.get_nivel_critico_display }}</span>
+                        {% elif ticket.nivel_critico == 'MEDIO' %}
+                            <span class="badge bg-info">{{ ticket.get_nivel_critico_display }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ ticket.get_nivel_critico_display }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Tipo de Problema:</strong><br>
+                        {{ ticket.tipo_problema }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Área Asignada:</strong><br>
+                        {{ ticket.area_asignada.nombre }}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Descripción del Problema:</strong>
+                    <p class="mt-2">{{ ticket.descripcion_problema|linebreaks }}</p>
+                </div>
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Trabajador Asignado:</strong><br>
+                        {% if ticket.trabajador_asignado %}
+                            {{ ticket.trabajador_asignado.get_full_name|default:ticket.trabajador_asignado.username }}
+                        {% else %}
+                            <span class="text-danger">Sin asignar</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Creado por:</strong><br>
+                        {{ ticket.trabajador_creador.get_full_name|default:ticket.trabajador_creador.username }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Observaciones -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Observaciones</h5>
+                {% if puede_editar %}
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addObservationModal">
+                    <i class="bi bi-plus"></i> Agregar
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if ticket.observaciones.exists %}
+                    {% for obs in ticket.observaciones.all %}
+                    <div class="border-bottom mb-3 pb-3">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ obs.autor_trabajador.get_full_name|default:obs.autor_trabajador.username }}</strong>
+                            <small class="text-muted">{{ obs.fecha_hora_observacion|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        <p class="mb-0 mt-2">{{ obs.observacion_texto }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0">No hay observaciones registradas.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Historial de derivaciones -->
+        {% if ticket.derivaciones.exists %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Historial de Derivaciones</h5>
+            </div>
+            <div class="card-body">
+                {% for deriv in ticket.derivaciones.all %}
+                <div class="border-bottom mb-3 pb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ deriv.area_origen.nombre }} → {{ deriv.area_destino.nombre }}</strong>
+                        <small class="text-muted">{{ deriv.fecha_derivacion|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    <p class="mb-1 text-muted">Por: {{ deriv.trabajador_origen.get_full_name|default:deriv.trabajador_origen.username }}</p>
+                    <p class="mb-0">Motivo: {{ deriv.motivo_derivacion }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar con información adicional -->
+    <div class="col-md-4">
+        <!-- Información del cliente -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Cliente</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Nombre:</strong> {{ ticket.cliente_solicitante.nombre }}</p>
+                <p class="mb-1"><strong>Email:</strong> {{ ticket.cliente_solicitante.correo_electronico }}</p>
+                {% if ticket.cliente_solicitante.telefono %}
+                <p class="mb-0"><strong>Teléfono:</strong> {{ ticket.cliente_solicitante.telefono }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Fechas importantes -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Fechas</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-1">
+                    <strong>Creado:</strong><br>
+                    {{ ticket.fecha_creacion|date:"d/m/Y H:i" }}
+                </p>
+                <p class="mb-1">
+                    <strong>Última actualización:</strong><br>
+                    {{ ticket.fecha_actualizacion|date:"d/m/Y H:i" }}
+                </p>
+                {% if ticket.fecha_resolucion %}
+                <p class="mb-1">
+                    <strong>Resuelto:</strong><br>
+                    {{ ticket.fecha_resolucion|date:"d/m/Y H:i" }}
+                </p>
+                {% endif %}
+                {% if ticket.fecha_cierre %}
+                <p class="mb-0">
+                    <strong>Cerrado:</strong><br>
+                    {{ ticket.fecha_cierre|date:"d/m/Y H:i" }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Acciones rápidas -->
+        {% if puede_editar %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Acciones</h5>
+            </div>
+            <div class="card-body">
+                {% if ticket.estado == 'ABIERTO' %}
+                <button class="btn btn-info btn-sm w-100 mb-2">
+                    <i class="bi bi-play-circle"></i> Iniciar Trabajo
+                </button>
+                {% elif ticket.estado == 'EN_PROCESO' %}
+                <button class="btn btn-success btn-sm w-100 mb-2">
+                    <i class="bi bi-check-circle"></i> Marcar como Resuelto
+                </button>
+                {% endif %}
+                {% if ticket.estado != 'CERRADO' %}
+                <button class="btn btn-secondary btn-sm w-100 mb-2">
+                    <i class="bi bi-x-circle"></i> Cerrar Ticket
+                </button>
+                {% endif %}
+                <button class="btn btn-warning btn-sm w-100">
+                    <i class="bi bi-arrow-right-circle"></i> Derivar a otra área
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para agregar observación -->
+{% if puede_editar %}
+<div class="modal fade" id="addObservationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar Observación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="#">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="observacion_texto" class="form-label">Observación</label>
+                        <textarea class="form-control" id="observacion_texto" name="observacion_texto" rows="4" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Observación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

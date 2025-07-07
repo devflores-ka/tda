@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Sistema de Tickets{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'crear_ticket' %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-circle"></i> Nuevo Ticket
+        </a>
+    </div>
+</div>
+
+<!-- Estadísticas generales -->
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card border-primary">
+            <div class="card-body">
+                <h5 class="card-title text-primary">Total Tickets</h5>
+                <h2 class="mb-0">{{ total_tickets }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card border-warning">
+            <div class="card-body">
+                <h5 class="card-title text-warning">Abiertos</h5>
+                <h2 class="mb-0">{{ tickets_abiertos }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card border-info">
+            <div class="card-body">
+                <h5 class="card-title text-info">En Proceso</h5>
+                <h2 class="mb-0">{{ tickets_en_proceso }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card border-success">
+            <div class="card-body">
+                <h5 class="card-title text-success">Resueltos</h5>
+                <h2 class="mb-0">{{ tickets_resueltos }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mis tickets asignados -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Mis Tickets Asignados</h5>
+            </div>
+            <div class="card-body">
+                {% if mis_tickets %}
+                    <div class="list-group">
+                        {% for ticket in mis_tickets %}
+                        <a href="{% url 'ver_ticket' ticket.id %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">#{{ ticket.id }} - {{ ticket.titulo|truncatechars:40 }}</h6>
+                                <small>{{ ticket.fecha_creacion|date:"d/m/Y" }}</small>
+                            </div>
+                            <p class="mb-1">
+                                <span class="badge bg-{{ ticket.get_estado_display|lower }}">{{ ticket.get_estado_display }}</span>
+                                <span class="badge bg-{{ ticket.get_nivel_critico_display|lower }}">{{ ticket.get_nivel_critico_display }}</span>
+                            </p>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'lista_tickets' %}?asignado={{ user.id }}" class="btn btn-sm btn-outline-primary">Ver todos mis tickets</a>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No tienes tickets asignados</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Tickets del área -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Tickets de mi Área</h5>
+            </div>
+            <div class="card-body">
+                {% if tickets_area %}
+                    <div class="list-group">
+                        {% for ticket in tickets_area %}
+                        <a href="{% url 'ver_ticket' ticket.id %}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">#{{ ticket.id }} - {{ ticket.titulo|truncatechars:40 }}</h6>
+                                <small>{{ ticket.fecha_creacion|date:"d/m/Y" }}</small>
+                            </div>
+                            <p class="mb-1">
+                                <span class="badge bg-{{ ticket.get_estado_display|lower }}">{{ ticket.get_estado_display }}</span>
+                                {% if ticket.trabajador_asignado %}
+                                    <small class="text-muted">Asignado a: {{ ticket.trabajador_asignado.get_full_name|default:ticket.trabajador_asignado.username }}</small>
+                                {% else %}
+                                    <small class="text-danger">Sin asignar</small>
+                                {% endif %}
+                            </p>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-3">
+                        <a href="{% url 'lista_tickets' %}?area={{ user.perfil.area.id }}" class="btn btn-sm btn-outline-primary">Ver todos los tickets del área</a>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No hay tickets en tu área</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Accesos rápidos -->
+<div class="row mt-4">
+    <div class="col-12">
+        <h4>Accesos Rápidos</h4>
+        <div class="btn-group" role="group">
+            <a href="{% url 'crear_ticket' %}" class="btn btn-outline-primary">Crear Ticket</a>
+            <a href="{% url 'lista_tickets' %}" class="btn btn-outline-primary">Ver Todos los Tickets</a>
+            <a href="{% url 'lista_tickets' %}?estado=ABIERTO" class="btn btn-outline-warning">Tickets Abiertos</a>
+            <a href="{% url 'lista_tickets' %}?nivel=CRITICO" class="btn btn-outline-danger">Tickets Críticos</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
