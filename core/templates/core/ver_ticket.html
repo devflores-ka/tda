@@ -1,0 +1,497 @@
+{% extends 'base.html' %}
+
+{% block title %}Ticket #{{ ticket.id }} - Sistema de Tickets{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Ticket #{{ ticket.id }}</h2>
+            <div>
+                {% if puede_editar %}
+                <a href="#" class="btn btn-primary">
+                    <i class="bi bi-pencil"></i> Editar
+                </a>
+                {% endif %}
+                <a href="{% url 'lista_tickets' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+
+        <!-- Información principal -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">{{ ticket.titulo }}</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <strong>Estado:</strong><br>
+                        <span id="estado-badge">
+                            {% if ticket.estado == 'ABIERTO' %}
+                                <span class="badge bg-warning">{{ ticket.get_estado_display }}</span>
+                            {% elif ticket.estado == 'EN_PROCESO' %}
+                                <span class="badge bg-info">{{ ticket.get_estado_display }}</span>
+                            {% elif ticket.estado == 'RESUELTO' %}
+                                <span class="badge bg-success">{{ ticket.get_estado_display }}</span>
+                            {% elif ticket.estado == 'CERRADO' %}
+                                <span class="badge bg-secondary">{{ ticket.get_estado_display }}</span>
+                            {% else %}
+                                <span class="badge bg-dark">{{ ticket.get_estado_display }}</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Nivel Crítico:</strong><br>
+                        {% if ticket.nivel_critico == 'CRITICO' %}
+                            <span class="badge bg-danger">{{ ticket.get_nivel_critico_display }}</span>
+                        {% elif ticket.nivel_critico == 'ALTO' %}
+                            <span class="badge bg-warning">{{ ticket.get_nivel_critico_display }}</span>
+                        {% elif ticket.nivel_critico == 'MEDIO' %}
+                            <span class="badge bg-info">{{ ticket.get_nivel_critico_display }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ ticket.get_nivel_critico_display }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Tipo de Problema:</strong><br>
+                        {{ ticket.tipo_problema }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Área Asignada:</strong><br>
+                        <span id="area-actual">{{ ticket.area_asignada.nombre }}</span>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <strong>Descripción del Problema:</strong>
+                    <p class="mt-2">{{ ticket.descripcion_problema|linebreaks }}</p>
+                </div>
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Trabajador Asignado:</strong><br>
+                        {% if ticket.trabajador_asignado %}
+                            {{ ticket.trabajador_asignado.get_full_name|default:ticket.trabajador_asignado.username }}
+                        {% else %}
+                            <span class="text-danger">Sin asignar</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Creado por:</strong><br>
+                        {{ ticket.trabajador_creador.get_full_name|default:ticket.trabajador_creador.username }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Observaciones -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Observaciones</h5>
+                {% if puede_editar %}
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addObservationModal">
+                    <i class="bi bi-plus"></i> Agregar
+                </button>
+                {% endif %}
+            </div>
+            <div class="card-body" id="observaciones-container">
+                {% if ticket.observaciones.exists %}
+                    {% for obs in ticket.observaciones.all %}
+                    <div class="border-bottom mb-3 pb-3 observacion-item">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ obs.autor_trabajador.get_full_name|default:obs.autor_trabajador.username }}</strong>
+                            <small class="text-muted">{{ obs.fecha_hora_observacion|date:"d/m/Y H:i" }}</small>
+                        </div>
+                        <p class="mb-0 mt-2">{{ obs.observacion_texto }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted mb-0" id="sin-observaciones">No hay observaciones registradas.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Historial de derivaciones -->
+        {% if ticket.derivaciones.exists %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Historial de Derivaciones</h5>
+            </div>
+            <div class="card-body">
+                {% for deriv in ticket.derivaciones.all %}
+                <div class="border-bottom mb-3 pb-3">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ deriv.area_origen.nombre }} → {{ deriv.area_destino.nombre }}</strong>
+                        <small class="text-muted">{{ deriv.fecha_derivacion|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    <p class="mb-1 text-muted">Por: {{ deriv.trabajador_origen.get_full_name|default:deriv.trabajador_origen.username }}</p>
+                    <p class="mb-0">Motivo: {{ deriv.motivo_derivacion }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sidebar con información adicional -->
+    <div class="col-md-4">
+        <!-- Información del cliente -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Cliente</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Nombre:</strong> {{ ticket.cliente_solicitante.nombre }}</p>
+                <p class="mb-1"><strong>Email:</strong> {{ ticket.cliente_solicitante.correo_electronico }}</p>
+                {% if ticket.cliente_solicitante.telefono %}
+                <p class="mb-0"><strong>Teléfono:</strong> {{ ticket.cliente_solicitante.telefono }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Fechas importantes -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Fechas</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-1">
+                    <strong>Creado:</strong><br>
+                    {{ ticket.fecha_creacion|date:"d/m/Y H:i" }}
+                </p>
+                <p class="mb-1">
+                    <strong>Última actualización:</strong><br>
+                    {{ ticket.fecha_actualizacion|date:"d/m/Y H:i" }}
+                </p>
+                {% if ticket.fecha_resolucion %}
+                <p class="mb-1">
+                    <strong>Resuelto:</strong><br>
+                    {{ ticket.fecha_resolucion|date:"d/m/Y H:i" }}
+                </p>
+                {% endif %}
+                {% if ticket.fecha_cierre %}
+                <p class="mb-0">
+                    <strong>Cerrado:</strong><br>
+                    {{ ticket.fecha_cierre|date:"d/m/Y H:i" }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Acciones rápidas -->
+        {% if puede_editar %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Acciones</h5>
+            </div>
+            <div class="card-body">
+                <!-- Cambio de estado -->
+                {% if ticket.estado != 'CERRADO' and ticket.estado != 'NO_APLICA' %}
+                <button class="btn btn-primary btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#cambiarEstadoModal">
+                    <i class="bi bi-arrow-repeat"></i> Cambiar Estado
+                </button>
+                {% endif %}
+                
+                <!-- Derivación -->
+                {% if ticket.estado == 'ABIERTO' %}
+                <button class="btn btn-warning btn-sm w-100 mb-2" data-bs-toggle="modal" data-bs-target="#derivarModal">
+                    <i class="bi bi-arrow-right-circle"></i> Derivar a otra área
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para agregar observación -->
+{% if puede_editar %}
+<div class="modal fade" id="addObservationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar Observación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="observacionForm" method="post" action="{% url 'agregar_observacion' ticket.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        {{ observacion_form.observacion_texto.label_tag }}
+                        {{ observacion_form.observacion_texto }}
+                        <div class="form-text">Mínimo 10 caracteres, máximo 1000</div>
+                        <div class="invalid-feedback" id="observacion-error"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Observación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para derivar ticket -->
+{% if ticket.estado == 'ABIERTO' %}
+<div class="modal fade" id="derivarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Derivar Ticket</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="derivarForm" method="post" action="{% url 'derivar_ticket' ticket.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="area_destino" class="form-label">Derivar a área</label>
+                        <select class="form-control" id="area_destino" name="area_destino" required>
+                            <option value="">-- Seleccione un área --</option>
+                            {% for area in areas %}
+                                {% if area.id != ticket.area_asignada.id %}
+                                <option value="{{ area.id }}">{{ area.nombre }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="motivo_derivacion" class="form-label">Motivo de derivación</label>
+                        <textarea class="form-control" id="motivo_derivacion" name="motivo_derivacion" 
+                                  rows="3" required placeholder="Explique el motivo de la derivación..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Derivar Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal para cambiar estado -->
+{% if ticket.estado != 'CERRADO' and ticket.estado != 'NO_APLICA' %}
+<div class="modal fade" id="cambiarEstadoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cambiar Estado del Ticket</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="cambiarEstadoForm" method="post" action="{% url 'cambiar_estado_ticket' ticket.id %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nuevo_estado" class="form-label">Nuevo estado</label>
+                        <select class="form-control" id="nuevo_estado" name="nuevo_estado" required>
+                            <option value="">-- Seleccione nuevo estado --</option>
+                            {% if ticket.estado == 'ABIERTO' %}
+                                <option value="EN_PROCESO">En Proceso</option>
+                                <option value="NO_APLICA">No Aplica</option>
+                            {% elif ticket.estado == 'EN_PROCESO' %}
+                                <option value="RESUELTO">Resuelto</option>
+                                <option value="NO_APLICA">No Aplica</option>
+                            {% elif ticket.estado == 'RESUELTO' %}
+                                <option value="CERRADO">Cerrado</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="observacion_estado" class="form-label">Observación</label>
+                        <textarea class="form-control" id="observacion_estado" name="observacion" 
+                                  rows="3" placeholder="Observación sobre el cambio de estado..."></textarea>
+                        <div class="form-text">Obligatorio para estados finales (Resuelto, No Aplica, Cerrado)</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Cambiar Estado</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endif %}
+
+<!-- Datos para JavaScript -->
+<script>
+    const areas = [
+        {% for area in areas %}
+        {id: {{ area.id }}, nombre: "{{ area.nombre }}"}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Manejo de observaciones con AJAX
+document.getElementById('observacionForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addObservationModal'));
+            modal.hide();
+            
+            // Limpiar formulario
+            form.reset();
+            
+            // Remover mensaje de "sin observaciones"
+            const sinObs = document.getElementById('sin-observaciones');
+            if (sinObs) sinObs.remove();
+            
+            // Agregar nueva observación al DOM
+            const container = document.getElementById('observaciones-container');
+            const newObs = document.createElement('div');
+            newObs.className = 'border-bottom mb-3 pb-3 observacion-item';
+            newObs.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <strong>${data.observacion.autor}</strong>
+                    <small class="text-muted">${data.observacion.fecha}</small>
+                </div>
+                <p class="mb-0 mt-2">${data.observacion.texto}</p>
+            `;
+            container.insertBefore(newObs, container.firstChild);
+            
+            // Mostrar mensaje de éxito
+            showAlert('success', 'Observación agregada exitosamente');
+        } else {
+            // Mostrar errores
+            if (data.errors.observacion_texto) {
+                document.getElementById('observacion-error').textContent = data.errors.observacion_texto[0];
+                document.getElementById('id_observacion_texto').classList.add('is-invalid');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Error al agregar la observación');
+    });
+});
+
+// Manejo de derivación con AJAX
+document.getElementById('derivarForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('derivarModal'));
+            modal.hide();
+            
+            // Mostrar mensaje y recargar página
+            showAlert('success', data.message);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', 'Error al derivar el ticket');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Error al derivar el ticket');
+    });
+});
+
+// Manejo de cambio de estado con AJAX
+document.getElementById('cambiarEstadoForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const form = e.target;
+    const formData = new FormData(form);
+    const nuevoEstado = formData.get('nuevo_estado');
+    const observacion = formData.get('observacion');
+    
+    // Validar observación para estados finales
+    if (['RESUELTO', 'NO_APLICA', 'CERRADO'].includes(nuevoEstado) && (!observacion || observacion.trim().length < 10)) {
+        showAlert('warning', 'La observación es obligatoria para estados finales (mínimo 10 caracteres)');
+        document.getElementById('observacion_estado').classList.add('is-invalid');
+        return;
+    }
+    
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Cerrar modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('cambiarEstadoModal'));
+            modal.hide();
+            
+            // Mostrar mensaje y recargar página
+            showAlert('success', `Estado actualizado a ${data.nuevo_estado_display}`);
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert('danger', 'Error al cambiar el estado');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Error al cambiar el estado');
+    });
+});
+
+// Función auxiliar para mostrar alertas
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Limpiar validaciones al cerrar modales
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('hidden.bs.modal', function() {
+        modal.querySelectorAll('.is-invalid').forEach(el => {
+            el.classList.remove('is-invalid');
+        });
+        modal.querySelectorAll('form').forEach(form => {
+            form.reset();
+        });
+    });
+});
+</script>
+{% endblock %}
