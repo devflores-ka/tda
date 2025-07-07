@@ -1,0 +1,36 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'nombre_de_tu_db'
+      MYSQL_USER: 'usuario_de_tu_db'
+      MYSQL_PASSWORD: 'password_de_tu_db'
+      MYSQL_ROOT_PASSWORD: 'password_del_root'
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  web:
+    build: ./backend
+    container_name: django_app
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+      - ./core:/app/core
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DB_NAME=nombre_de_tu_db
+      - DB_USER=usuario_de_tu_db
+      - DB_PASSWORD=password_de_tu_db
+      - DB_HOST=db
+      - DB_PORT=3306
+
+volumes:
+  mysql_data:

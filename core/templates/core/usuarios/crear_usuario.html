@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear Usuario - Sistema de Tickets{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Crear Nuevo Usuario</h2>
+            <a href="{% url 'lista_usuarios' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="post" id="crearUsuarioForm">
+                    {% csrf_token %}
+                    
+                    <!-- Información básica -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Información Básica</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.username.label_tag }}
+                                    {{ form.username }}
+                                    {% if form.username.help_text %}
+                                        <div class="form-text">{{ form.username.help_text }}</div>
+                                    {% endif %}
+                                    {% if form.username.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.username.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.email.label_tag }}
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.email.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.first_name.label_tag }}
+                                    {{ form.first_name }}
+                                    {% if form.first_name.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.first_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.last_name.label_tag }}
+                                    {{ form.last_name }}
+                                    {% if form.last_name.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.last_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contraseña -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Contraseña</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.password1.label_tag }}
+                                    {{ form.password1 }}
+                                    {% if form.password1.help_text %}
+                                        <div class="form-text">{{ form.password1.help_text }}</div>
+                                    {% endif %}
+                                    {% if form.password1.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.password1.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    {{ form.password2.label_tag }}
+                                    {{ form.password2 }}
+                                    {% if form.password2.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.password2.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="bi bi-info-circle"></i> La contraseña será enviada al correo electrónico del usuario.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Asignación y permisos -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Asignación y Permisos</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    {{ form.area.label_tag }}
+                                    {{ form.area }}
+                                    {% if form.area.help_text %}
+                                        <div class="form-text">{{ form.area.help_text }}</div>
+                                    {% endif %}
+                                    {% if form.area.errors %}
+                                        <div class="invalid-feedback d-block">{{ form.area.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Permisos especiales</label>
+                                    <div class="form-check">
+                                        {{ form.es_jefe }}
+                                        {{ form.es_jefe.label_tag }}
+                                        {% if form.es_jefe.help_text %}
+                                            <div class="form-text">{{ form.es_jefe.help_text }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        {{ form.is_staff }}
+                                        {{ form.is_staff.label_tag }}
+                                        {% if form.is_staff.help_text %}
+                                            <div class="form-text">{{ form.is_staff.help_text }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger mt-3">
+                                    {{ form.non_field_errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Crear Usuario
+                        </button>
+                        <a href="{% url 'lista_usuarios' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validación de contraseñas en tiempo real
+    const password1 = document.getElementById('id_password1');
+    const password2 = document.getElementById('id_password2');
+    
+    function validatePasswords() {
+        if (password2.value && password1.value !== password2.value) {
+            password2.setCustomValidity('Las contraseñas no coinciden');
+            password2.classList.add('is-invalid');
+        } else {
+            password2.setCustomValidity('');
+            password2.classList.remove('is-invalid');
+        }
+    }
+    
+    password1.addEventListener('input', validatePasswords);
+    password2.addEventListener('input', validatePasswords);
+    
+    // Validación de área y jefatura
+    const areaSelect = document.getElementById('id_area');
+    const esJefeCheck = document.getElementById('id_es_jefe');
+    
+    esJefeCheck.addEventListener('change', function() {
+        if (this.checked && !areaSelect.value) {
+            areaSelect.required = true;
+            areaSelect.classList.add('is-invalid');
+            // Mostrar mensaje
+            let feedback = areaSelect.nextElementSibling;
+            if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+                feedback = document.createElement('div');
+                feedback.className = 'invalid-feedback d-block';
+                areaSelect.parentNode.appendChild(feedback);
+            }
+            feedback.textContent = 'Debe seleccionar un área si el usuario es jefe';
+        } else {
+            areaSelect.required = false;
+            areaSelect.classList.remove('is-invalid');
+        }
+    });
+    
+    areaSelect.addEventListener('change', function() {
+        if (esJefeCheck.checked && this.value) {
+            this.classList.remove('is-invalid');
+        }
+    });
+});
+</script>
+{% endblock %}
