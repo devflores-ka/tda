@@ -1,0 +1,36 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_DATABASE: 'sistema_tickets_db'
+      MYSQL_USER: 'tickets_user'
+      MYSQL_PASSWORD: 'tickets_pass'
+      MYSQL_ROOT_PASSWORD: 'root_pass'
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  web:
+    build: ./backend
+    container_name: django_app
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+      - ./core:/app/core
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DB_NAME=sistema_tickets_db
+      - DB_USER=tickets_user
+      - DB_PASSWORD=tickets_pass
+      - DB_HOST=db
+      - DB_PORT=3306
+
+volumes:
+  mysql_data:

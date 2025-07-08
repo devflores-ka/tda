@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestión de Grupos - Sistema de Tickets{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Gestión de Grupos</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'crear_grupo' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nuevo Grupo
+        </a>
+    </div>
+</div>
+
+<!-- Estadísticas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Total Grupos</h5>
+                <h3 class="text-primary">{{ stats.total }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Activos</h5>
+                <h3 class="text-success">{{ stats.activos }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Inactivos</h5>
+                <h3 class="text-secondary">{{ stats.inactivos }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Total Áreas</h5>
+                <h3 class="text-info">{{ stats.total_areas }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <label for="busqueda" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="busqueda" name="busqueda" 
+                       placeholder="Nombre o descripción..." value="{{ busqueda }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label d-block">Mostrar</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="inactivos" name="inactivos" 
+                           {% if mostrar_inactivos %}checked{% endif %}>
+                    <label class="form-check-label" for="inactivos">
+                        Incluir grupos inactivos
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i> Buscar
+                </button>
+                {% if busqueda %}
+                <a href="{% url 'lista_grupos' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Limpiar
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de grupos -->
+<div class="row">
+    {% for grupo in grupos %}
+    <div class="col-md-6 mb-4">
+        <div class="card {% if not grupo.activo %}opacity-75{% endif %}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    {{ grupo.nombre }}
+                    {% if not grupo.activo %}
+                        <span class="badge bg-secondary ms-2">Inactivo</span>
+                    {% endif %}
+                </h5>
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="{% url 'editar_grupo' grupo.id %}" class="btn btn-outline-primary" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    {% if grupo.activo and grupo.puede_eliminar %}
+                    <button type="button" class="btn btn-outline-danger btn-eliminar" 
+                            data-grupo-id="{{ grupo.id }}" data-grupo-nombre="{{ grupo.nombre }}" title="Desactivar">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="card-text">{{ grupo.descripcion|truncatechars:100 }}</p>
+                
+                <h6 class="mt-3">Áreas incluidas ({{ grupo.areas.count }}):</h6>
+                {% if grupo.areas.exists %}
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for area in grupo.areas.all %}
+                            <span class="badge bg-info">{{ area.nombre }}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted small">Sin áreas asignadas</p>
+                {% endif %}
+                
+                <hr>
+                <div class="d-flex justify-content-between text-muted small">
+                    <span>Creado por: {{ grupo.creado_por.get_full_name|default:grupo.creado_por.username }}</span>
+                    <span>{{ grupo.fecha_creacion|date:"d/m/Y" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="text-center py-5">
+            <i class="bi bi-collection display-4 text-muted"></i>
+            <p class="mt-3 text-muted">No se encontraron grupos.</p>
+            <a href="{% url 'crear_grupo' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Crear primer grupo
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal de confirmación -->
+<div class="modal fade" id="confirmarEliminarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Desactivación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea desactivar el grupo "<span id="grupo-nombre"></span>"?</p>
+                <p class="text-muted">El grupo quedará inactivo pero no se eliminará del sistema.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmarEliminar">Desactivar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let grupoIdActual = null;
+    
+    // Manejar clicks en botones de eliminar
+    document.querySelectorAll('.btn-eliminar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            grupoIdActual = this.dataset.grupoId;
+            const grupoNombre = this.dataset.grupoNombre;
+            
+            document.getElementById('grupo-nombre').textContent = grupoNombre;
+            
+            const modal = new bootstrap.Modal(document.getElementById('confirmarEliminarModal'));
+            modal.show();
+        });
+    });
+    
+    // Confirmar eliminación
+    document.getElementById('confirmarEliminar').addEventListener('click', function() {
+        if (!grupoIdActual) return;
+        
+        fetch(`/grupos/${grupoIdActual}/eliminar/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert('danger', data.error);
+            }
+            
+            // Cerrar modal
+            bootstrap.Modal.getInstance(document.getElementById('confirmarEliminarModal')).hide();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', 'Error al procesar la solicitud');
+        });
+    });
+});
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

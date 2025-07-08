@@ -1,0 +1,353 @@
+{% extends 'base.html' %}
+
+{% block title %}Lista de Tickets - Sistema de Tickets{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Lista de Tickets</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'crear_ticket' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nuevo Ticket
+        </a>
+    </div>
+</div>
+
+<!-- Estadísticas rápidas -->
+{% if stats %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Total Filtrado</h5>
+                <h3 class="text-primary">{{ stats.total }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Críticos</h5>
+                <h3 class="text-danger">{{ stats.criticos }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">En Proceso</h5>
+                <h3 class="text-info">{{ stats.en_proceso }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Resueltos</h5>
+                <h3 class="text-success">{{ stats.resueltos }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Filtros Avanzados -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-funnel"></i> Filtros Avanzados
+        </h5>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" 
+                data-bs-target="#filtrosCollapse" aria-expanded="true">
+            <i class="bi bi-chevron-down"></i> Mostrar/Ocultar
+        </button>
+    </div>
+    <div class="collapse show" id="filtrosCollapse">
+        <div class="card-body">
+            <form method="get" id="filtrosForm">
+                <div class="row g-3">
+                    <!-- Primera fila -->
+                    <div class="col-md-6">
+                        <label for="{{ form.busqueda.id_for_label }}" class="form-label">
+                            {{ form.busqueda.label }}
+                        </label>
+                        {{ form.busqueda }}
+                    </div>
+                    <div class="col-md-3">
+                        <label for="{{ form.estado.id_for_label }}" class="form-label">
+                            {{ form.estado.label }}
+                        </label>
+                        {{ form.estado }}
+                    </div>
+                    <div class="col-md-3">
+                        <label for="{{ form.nivel_critico.id_for_label }}" class="form-label">
+                            {{ form.nivel_critico.label }}
+                        </label>
+                        {{ form.nivel_critico }}
+                    </div>
+                    
+                    <!-- Segunda fila -->
+                    <div class="col-md-2">
+                        <label for="{{ form.fecha_desde.id_for_label }}" class="form-label">
+                            {{ form.fecha_desde.label }}
+                        </label>
+                        {{ form.fecha_desde }}
+                    </div>
+                    <div class="col-md-2">
+                        <label for="{{ form.fecha_hasta.id_for_label }}" class="form-label">
+                            {{ form.fecha_hasta.label }}
+                        </label>
+                        {{ form.fecha_hasta }}
+                    </div>
+                    <div class="col-md-3">
+                        <label for="{{ form.area_asignada.id_for_label }}" class="form-label">
+                            {{ form.area_asignada.label }}
+                        </label>
+                        {{ form.area_asignada }}
+                    </div>
+                    <div class="col-md-3">
+                        <label for="{{ form.trabajador_asignado.id_for_label }}" class="form-label">
+                            {{ form.trabajador_asignado.label }}
+                        </label>
+                        {{ form.trabajador_asignado }}
+                    </div>
+                    <div class="col-md-2">
+                        <label for="{{ form.tipo_problema.id_for_label }}" class="form-label">
+                            {{ form.tipo_problema.label }}
+                        </label>
+                        {{ form.tipo_problema }}
+                    </div>
+                    
+                    <!-- Tercera fila -->
+                    <div class="col-md-4">
+                        <label for="{{ form.cliente.id_for_label }}" class="form-label">
+                            {{ form.cliente.label }}
+                        </label>
+                        {{ form.cliente }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.orden.id_for_label }}" class="form-label">
+                            {{ form.orden.label }}
+                        </label>
+                        {{ form.orden }}
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Aplicar Filtros
+                        </button>
+                        {% if filtros_activos %}
+                        <a href="{% url 'lista_tickets' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Limpiar
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger mt-3">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de tickets -->
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Cliente</th>
+                <th>Estado</th>
+                <th>Nivel</th>
+                <th>Tipo</th>
+                <th>Área</th>
+                <th>Asignado a</th>
+                <th>Creado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in page_obj %}
+            <tr class="{% if ticket.nivel_critico == 'CRITICO' %}table-danger{% elif ticket.nivel_critico == 'ALTO' %}table-warning{% endif %}">
+                <td><strong>#{{ ticket.id }}</strong></td>
+                <td>
+                    <a href="{% url 'ver_ticket' ticket.id %}" class="text-decoration-none">
+                        {{ ticket.titulo|truncatechars:40 }}
+                    </a>
+                    {% if ticket.observaciones.exists %}
+                        <span class="badge bg-secondary ms-1" title="{{ ticket.observaciones.count }} observaciones">
+                            <i class="bi bi-chat-dots"></i> {{ ticket.observaciones.count }}
+                        </span>
+                    {% endif %}
+                    {% if ticket.derivaciones.exists %}
+                        <span class="badge bg-info ms-1" title="Ticket derivado">
+                            <i class="bi bi-arrow-right-circle"></i>
+                        </span>
+                    {% endif %}
+                </td>
+                <td>
+                    <small>{{ ticket.cliente_solicitante.nombre|truncatechars:20 }}</small>
+                </td>
+                <td>
+                    {% if ticket.estado == 'ABIERTO' %}
+                        <span class="badge bg-warning">{{ ticket.get_estado_display }}</span>
+                    {% elif ticket.estado == 'EN_PROCESO' %}
+                        <span class="badge bg-info">{{ ticket.get_estado_display }}</span>
+                    {% elif ticket.estado == 'RESUELTO' %}
+                        <span class="badge bg-success">{{ ticket.get_estado_display }}</span>
+                    {% elif ticket.estado == 'CERRADO' %}
+                        <span class="badge bg-secondary">{{ ticket.get_estado_display }}</span>
+                    {% else %}
+                        <span class="badge bg-dark">{{ ticket.get_estado_display }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if ticket.nivel_critico == 'CRITICO' %}
+                        <span class="badge bg-danger">{{ ticket.get_nivel_critico_display }}</span>
+                    {% elif ticket.nivel_critico == 'ALTO' %}
+                        <span class="badge bg-warning">{{ ticket.get_nivel_critico_display }}</span>
+                    {% elif ticket.nivel_critico == 'MEDIO' %}
+                        <span class="badge bg-info">{{ ticket.get_nivel_critico_display }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ ticket.get_nivel_critico_display }}</span>
+                    {% endif %}
+                </td>
+                <td><small>{{ ticket.tipo_problema }}</small></td>
+                <td><small>{{ ticket.area_asignada.nombre }}</small></td>
+                <td>
+                    {% if ticket.trabajador_asignado %}
+                        <small>{{ ticket.trabajador_asignado.get_full_name|default:ticket.trabajador_asignado.username }}</small>
+                    {% else %}
+                        <span class="text-muted"><small>Sin asignar</small></span>
+                    {% endif %}
+                </td>
+                <td>
+                    <small>{{ ticket.fecha_creacion|date:"d/m/Y" }}</small>
+                </td>
+                <td>
+                    <a href="{% url 'ver_ticket' ticket.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="10" class="text-center">
+                    <div class="py-5">
+                        <i class="bi bi-inbox display-4 text-muted"></i>
+                        <p class="mt-3 text-muted">No se encontraron tickets con los filtros aplicados.</p>
+                        {% if filtros_activos %}
+                        <a href="{% url 'lista_tickets' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-x-circle"></i> Limpiar filtros
+                        </a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Paginación -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Paginación de tickets">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?{{ request.GET.urlencode }}&page=1">Primera</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.previous_page_number }}">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Primera</span>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link"><i class="bi bi-chevron-left"></i> Anterior</span>
+            </li>
+        {% endif %}
+        
+        <!-- Páginas numeradas -->
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?{{ request.GET.urlencode }}&page={{ num }}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.next_page_number }}">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?{{ request.GET.urlencode }}&page={{ page_obj.paginator.num_pages }}">Última</a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Siguiente <i class="bi bi-chevron-right"></i></span>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">Última</span>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Resumen -->
+<div class="text-center text-muted mb-4">
+    <small>
+        Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ page_obj.paginator.count }} tickets
+        {% if filtros_activos %}
+            <span class="text-primary">(con filtros aplicados)</span>
+        {% endif %}
+    </small>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Mejorar experiencia de filtros
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit cuando cambian ciertos campos
+    const autoSubmitFields = ['estado', 'nivel_critico', 'area_asignada', 'orden'];
+    autoSubmitFields.forEach(fieldId => {
+        const field = document.getElementById('id_' + fieldId);
+        if (field) {
+            field.addEventListener('change', function() {
+                // Pequeño delay para evitar múltiples submits
+                setTimeout(() => {
+                    document.getElementById('filtrosForm').submit();
+                }, 300);
+            });
+        }
+    });
+    
+    // Mostrar/ocultar filtros según estado
+    const collapse = document.getElementById('filtrosCollapse');
+    const toggleBtn = document.querySelector('[data-bs-target="#filtrosCollapse"]');
+    
+    collapse.addEventListener('show.bs.collapse', function() {
+        toggleBtn.innerHTML = '<i class="bi bi-chevron-up"></i> Mostrar/Ocultar';
+    });
+    
+    collapse.addEventListener('hide.bs.collapse', function() {
+        toggleBtn.innerHTML = '<i class="bi bi-chevron-down"></i> Mostrar/Ocultar';
+    });
+});
+</script>
+{% endblock %}

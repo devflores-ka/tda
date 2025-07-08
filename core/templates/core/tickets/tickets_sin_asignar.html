@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Tickets Sin Asignar - {{ area.nombre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Tickets Sin Asignar - {{ area.nombre }}</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'lista_tickets' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver a Lista
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> 
+    Estos son los tickets de tu área que están disponibles para tomar. 
+    Haz clic en "Tomar Ticket" para asignártelo.
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Cliente</th>
+                <th>Nivel</th>
+                <th>Tipo</th>
+                <th>Fecha Creación</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in page_obj %}
+            <tr class="{% if ticket.nivel_critico == 'CRITICO' %}table-danger{% elif ticket.nivel_critico == 'ALTO' %}table-warning{% endif %}">
+                <td><strong>#{{ ticket.id }}</strong></td>
+                <td>
+                    <a href="{% url 'ver_ticket' ticket.id %}" class="text-decoration-none">
+                        {{ ticket.titulo|truncatechars:50 }}
+                    </a>
+                </td>
+                <td>{{ ticket.cliente_solicitante.nombre|truncatechars:20 }}</td>
+                <td>
+                    {% if ticket.nivel_critico == 'CRITICO' %}
+                        <span class="badge bg-danger">{{ ticket.get_nivel_critico_display }}</span>
+                    {% elif ticket.nivel_critico == 'ALTO' %}
+                        <span class="badge bg-warning">{{ ticket.get_nivel_critico_display }}</span>
+                    {% elif ticket.nivel_critico == 'MEDIO' %}
+                        <span class="badge bg-info">{{ ticket.get_nivel_critico_display }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ ticket.get_nivel_critico_display }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ ticket.tipo_problema }}</td>
+                <td>{{ ticket.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                <td>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{% url 'ver_ticket' ticket.id %}" class="btn btn-outline-primary">
+                            <i class="bi bi-eye"></i> Ver
+                        </a>
+                        <form method="post" action="{% url 'tomar_ticket' ticket.id %}" class="d-inline tomar-ticket-form">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-hand-index"></i> Tomar
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center py-5">
+                    <i class="bi bi-check-circle display-4 text-success"></i>
+                    <p class="mt-3 text-muted">¡Excelente! No hay tickets sin asignar en tu área.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Paginación -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Paginación">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+            </li>
+        {% endif %}
+        
+        <li class="page-item active">
+            <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Confirmar antes de tomar ticket
+document.querySelectorAll('.tomar-ticket-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        if (!confirm('¿Estás seguro de que quieres tomar este ticket?')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

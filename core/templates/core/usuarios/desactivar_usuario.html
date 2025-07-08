@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}Desactivar Usuario - Sistema de Tickets{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Desactivar Usuario</h2>
+            <a href="{% url 'lista_usuarios' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+
+        <!-- Advertencia de impacto -->
+        <div class="alert alert-warning">
+            <h5 class="alert-heading">
+                <i class="bi bi-exclamation-triangle"></i> Advertencia
+            </h5>
+            <p>
+                Está a punto de desactivar al usuario <strong>{{ usuario.get_full_name|default:usuario.username }}</strong>.
+            </p>
+            <hr>
+            <p class="mb-0">
+                <strong>Impacto de esta acción:</strong>
+            </p>
+            <ul class="mb-0">
+                <li>El usuario no podrá iniciar sesión en el sistema</li>
+                <li>No se le podrán asignar nuevos tickets</li>
+                <li>Los tickets históricos permanecerán intactos</li>
+                {% if tickets_abiertos > 0 %}
+                <li class="text-danger">
+                    <strong>{{ tickets_abiertos }} ticket(s) abierto(s) deberán ser reasignados</strong>
+                </li>
+                {% endif %}
+                {% if es_jefe %}
+                <li class="text-danger">
+                    <strong>El usuario es jefe de área - su jefatura será finalizada</strong>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Información del usuario -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Información del Usuario</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Usuario:</strong> {{ usuario.username }}</p>
+                        <p><strong>Nombre completo:</strong> {{ usuario.get_full_name|default:"-" }}</p>
+                        <p><strong>Email:</strong> {{ usuario.email }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Área:</strong> 
+                            {% if usuario.perfil.area %}
+                                {{ usuario.perfil.area.nombre }}
+                            {% else %}
+                                Sin área asignada
+                            {% endif %}
+                        </p>
+                        <p><strong>Tickets asignados:</strong> {{ usuario.tickets_asignados.count }}</p>
+                        <p><strong>Tickets abiertos/en proceso:</strong> 
+                            <span class="{% if tickets_abiertos > 0 %}text-danger fw-bold{% endif %}">
+                                {{ tickets_abiertos }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario de desactivación -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Confirmar Desactivación</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="desactivarForm">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        {{ form.motivo.label_tag }}
+                        {{ form.motivo }}
+                        {% if form.motivo.help_text %}
+                            <div class="form-text">{{ form.motivo.help_text }}</div>
+                        {% endif %}
+                        {% if form.motivo.errors %}
+                            <div class="invalid-feedback d-block">{{ form.motivo.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <div class="form-check">
+                            {{ form.confirmar }}
+                            {{ form.confirmar.label_tag }}
+                        </div>
+                        {% if form.confirmar.errors %}
+                            <div class="invalid-feedback d-block">{{ form.confirmar.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-danger" id="btnDesactivar">
+                            <i class="bi bi-person-x"></i> Desactivar Usuario
+                        </button>
+                        <a href="{% url 'lista_usuarios' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tickets que deberán ser reasignados -->
+        {% if tickets_abiertos > 0 %}
+        <div class="card mt-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    Tickets que requieren reasignación
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Los siguientes tickets están asignados al usuario y se encuentran abiertos o en proceso:</p>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Título</th>
+                                <th>Estado</th>
+                                <th>Nivel</th>
+                                <th>Cliente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in usuario.tickets_asignados.all %}
+                                {% if ticket.estado == 'ABIERTO' or ticket.estado == 'EN_PROCESO' %}
+                                <tr>
+                                    <td>#{{ ticket.id }}</td>
+                                    <td>{{ ticket.titulo|truncatechars:40 }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if ticket.estado == 'ABIERTO' %}warning{% else %}info{% endif %}">
+                                            {{ ticket.get_estado_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if ticket.nivel_critico == 'CRITICO' %}danger{% elif ticket.nivel_critico == 'ALTO' %}warning{% else %}secondary{% endif %}">
+                                            {{ ticket.get_nivel_critico_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ ticket.cliente_solicitante.nombre|truncatechars:30 }}</td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('desactivarForm');
+    const btnDesactivar = document.getElementById('btnDesactivar');
+    const confirmarCheck = document.getElementById('id_confirmar');
+    
+    // Deshabilitar botón si no está confirmado
+    function actualizarBoton() {
+        btnDesactivar.disabled = !confirmarCheck.checked;
+    }
+    
+    confirmarCheck.addEventListener('change', actualizarBoton);
+    actualizarBoton();
+    
+    // Confirmación adicional al enviar
+    form.addEventListener('submit', function(e) {
+        const motivo = document.getElementById('id_motivo').value.trim();
+        
+        if (motivo.length < 10) {
+            e.preventDefault();
+            alert('El motivo debe tener al menos 10 caracteres');
+            return;
+        }
+        
+        if (!confirm('¿Está completamente seguro de desactivar este usuario? Esta acción no se puede deshacer fácilmente.')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

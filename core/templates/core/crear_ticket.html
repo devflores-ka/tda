@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Crear Ticket - Sistema de Tickets{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Crear Nuevo Ticket</h2>
+            <a href="{% url 'lista_tickets' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Volver
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="post" id="ticketForm">
+                    {% csrf_token %}
+                    
+                    <!-- Sección Cliente -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Información del Cliente</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="tipo_cliente" id="cliente_existente_radio" value="existente" checked>
+                                    <label class="form-check-label" for="cliente_existente_radio">
+                                        Cliente Existente
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="tipo_cliente" id="cliente_nuevo_radio" value="nuevo">
+                                    <label class="form-check-label" for="cliente_nuevo_radio">
+                                        Cliente Nuevo
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Cliente existente -->
+                            <div id="cliente_existente_div">
+                                <div class="mb-3">
+                                    {{ form.cliente_existente.label_tag }}
+                                    {{ form.cliente_existente }}
+                                </div>
+                            </div>
+
+                            <!-- Cliente nuevo -->
+                            <div id="cliente_nuevo_div" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        {{ form.cliente_nombre.label_tag }}
+                                        {{ form.cliente_nombre }}
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        {{ form.cliente_telefono.label_tag }}
+                                        {{ form.cliente_telefono }}
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        {{ form.cliente_email.label_tag }}
+                                        {{ form.cliente_email }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección Ticket -->
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Información del Ticket</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                {{ form.titulo.label_tag }}
+                                {{ form.titulo }}
+                                {% if form.titulo.errors %}
+                                    <div class="text-danger">{{ form.titulo.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                {{ form.descripcion_problema.label_tag }}
+                                {{ form.descripcion_problema }}
+                                {% if form.descripcion_problema.errors %}
+                                    <div class="text-danger">{{ form.descripcion_problema.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    {{ form.nivel_critico.label_tag }}
+                                    {{ form.nivel_critico }}
+                                    {% if form.nivel_critico.errors %}
+                                        <div class="text-danger">{{ form.nivel_critico.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    {{ form.tipo_problema.label_tag }}
+                                    {{ form.tipo_problema }}
+                                    <small class="form-text text-muted">Ej: Hardware, Software, Red, etc.</small>
+                                    {% if form.tipo_problema.errors %}
+                                        <div class="text-danger">{{ form.tipo_problema.errors }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    {{ form.area_asignada.label_tag }}
+                                    {{ form.area_asignada }}
+                                    {% if form.area_asignada.errors %}
+                                        <div class="text-danger">{{ form.area_asignada.errors }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger mt-3">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Crear Ticket
+                        </button>
+                        <a href="{% url 'lista_tickets' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const clienteExistenteRadio = document.getElementById('cliente_existente_radio');
+    const clienteNuevoRadio = document.getElementById('cliente_nuevo_radio');
+    const clienteExistenteDiv = document.getElementById('cliente_existente_div');
+    const clienteNuevoDiv = document.getElementById('cliente_nuevo_div');
+    
+    function toggleClienteFields() {
+        if (clienteExistenteRadio.checked) {
+            clienteExistenteDiv.style.display = 'block';
+            clienteNuevoDiv.style.display = 'none';
+            // Limpiar campos de cliente nuevo
+            document.getElementById('id_cliente_nombre').required = false;
+            document.getElementById('id_cliente_email').required = false;
+        } else {
+            clienteExistenteDiv.style.display = 'none';
+            clienteNuevoDiv.style.display = 'block';
+            // Hacer requeridos los campos de cliente nuevo
+            document.getElementById('id_cliente_nombre').required = true;
+            document.getElementById('id_cliente_email').required = true;
+        }
+    }
+    
+    clienteExistenteRadio.addEventListener('change', toggleClienteFields);
+    clienteNuevoRadio.addEventListener('change', toggleClienteFields);
+    
+    // Inicializar
+    toggleClienteFields();
+});
+</script>
+{% endblock %}

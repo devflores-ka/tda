@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Historial de Usuario - Sistema de Tickets{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Historial de {{ usuario.get_full_name|default:usuario.username }}</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'lista_usuarios' %}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<!-- Información del usuario -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <p class="mb-1"><strong>Usuario:</strong> {{ usuario.username }}</p>
+                        <p class="mb-1"><strong>Email:</strong> {{ usuario.email }}</p>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="mb-1"><strong>Nombre:</strong> {{ usuario.get_full_name|default:"-" }}</p>
+                        <p class="mb-1"><strong>Estado:</strong> 
+                            {% if usuario.is_active %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="mb-1"><strong>Área:</strong> 
+                            {% if usuario.perfil.area %}
+                                {{ usuario.perfil.area.nombre }}
+                            {% else %}
+                                Sin área
+                            {% endif %}
+                        </p>
+                        <p class="mb-1"><strong>Rol:</strong>
+                            {% if usuario.is_superuser %}
+                                <span class="badge bg-danger">Administrador</span>
+                            {% elif usuario.roles_jefatura.filter.fecha_fin_jefatura__isnull %}
+                                <span class="badge bg-warning">Jefe de Área</span>
+                            {% else %}
+                                <span class="badge bg-info">Ejecutivo</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-3">
+                        <p class="mb-1"><strong>Fecha registro:</strong> {{ usuario.date_joined|date:"d/m/Y" }}</p>
+                        <p class="mb-1"><strong>Último acceso:</strong> 
+                            {% if usuario.last_login %}
+                                {{ usuario.last_login|date:"d/m/Y H:i" }}
+                            {% else %}
+                                Nunca
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Timeline del historial -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Historial de Cambios</h5>
+    </div>
+    <div class="card-body">
+        {% if historial %}
+            <div class="timeline">
+                {% for evento in historial %}
+                <div class="timeline-item mb-4 pb-4 border-bottom">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">
+                                {% if evento.tipo_accion == 'CREACION' %}
+                                    <i class="bi bi-person-plus text-success"></i>
+                                {% elif evento.tipo_accion == 'ACTIVACION' %}
+                                    <i class="bi bi-person-check text-success"></i>
+                                {% elif evento.tipo_accion == 'DESACTIVACION' %}
+                                    <i class="bi bi-person-x text-danger"></i>
+                                {% elif evento.tipo_accion == 'CAMBIO_ROL' %}
+                                    <i class="bi bi-person-gear text-warning"></i>
+                                {% elif evento.tipo_accion == 'CAMBIO_AREA' %}
+                                    <i class="bi bi-building text-info"></i>
+                                {% endif %}
+                                {{ evento.get_tipo_accion_display }}
+                            </h6>
+                            <p class="mb-2">{{ evento.descripcion }}</p>
+                            
+                            {% if evento.datos_adicionales %}
+                            <div class="alert alert-light py-2 px-3">
+                                <small class="text-muted">
+                                    <strong>Información adicional:</strong>
+                                    {% if evento.datos_adicionales.tickets_abiertos %}
+                                        <br>• Tickets abiertos al momento: {{ evento.datos_adicionales.tickets_abiertos }}
+                                    {% endif %}
+                                    {% if evento.datos_adicionales.area %}
+                                        <br>• Área: {{ evento.datos_adicionales.area }}
+                                    {% endif %}
+                                    {% if evento.datos_adicionales.era_jefe %}
+                                        <br>• Era jefe de área: Sí
+                                    {% endif %}
+                                    {% if evento.datos_adicionales.grupo_id %}
+                                        <br>• ID del grupo: {{ evento.datos_adicionales.grupo_id }}
+                                    {% endif %}
+                                    {% if evento.datos_adicionales.areas_count %}
+                                        <br>• Áreas en el grupo: {{ evento.datos_adicionales.areas_count }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endif %}
+                            
+                            <small class="text-muted">
+                                Por: <strong>{{ evento.realizado_por.get_full_name|default:evento.realizado_por.username }}</strong>
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted">
+                                {{ evento.fecha_accion|date:"d/m/Y" }}<br>
+                                {{ evento.fecha_accion|date:"H:i" }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-center text-muted py-5">
+                <i class="bi bi-clock-history display-4"></i><br>
+                No hay eventos registrados en el historial de este usuario.
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.timeline-item:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+}
+</style>
+{% endblock %}
